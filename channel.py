@@ -2,6 +2,12 @@ import komm
 import numpy as np
 from typing import List
 
+
+def bsc(probability, packet):
+    bsc = komm.BinarySymmetricChannel(probability)
+    return bsc(packet)
+
+
 class Channel:
 
     probability = 10
@@ -11,10 +17,6 @@ class Channel:
         self._currentIndex = 0
         self._nextOut = 0
         self._currentModel = 0
-
-    def bsc(self, probability, packet):
-        bsc = komm.BinarySymmetricChannel(probability)
-        return bsc(packet)
 
     def gilbert_elliott(self, transmited_signal, p_bg, p_gb, num_bits):
         channel_state = [1]  # start in the good state
@@ -49,7 +51,7 @@ class Channel:
         if self._currentModel:
             self._buffer.append(self.gilbert_elliott(chInput, 1e-3, 1e-3, len(chInput)))
         else:
-            self._buffer.append(self.bsc(self.probability, chInput))
+            self._buffer.append(bsc(self.probability, chInput))
 
     def chOut(self):
         if self._nextOut <= len(self._buffer):
