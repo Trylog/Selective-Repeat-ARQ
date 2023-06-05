@@ -21,6 +21,11 @@ menu_options2 = {
     2: 'Geblerta-Eliota',
 }
 
+menu_options3 = {
+    1: 'CRC',
+    2: 'Hamming',
+}
+
 
 def menu():
     while (True):
@@ -30,11 +35,21 @@ def menu():
         print('Wybierz typ kanału')
         print_menu(2)
         option2 = int(input('Wybrano: '))
+        print('Wybierz typ kodowania')
+        print_menu(3)
+        option3 = int(input('Wybrano: '))
+        print('Ile przesłać pakietów?')
+        option4 = int(input('Wybrano: '))
         if option1 == 3:
             return 0, 0;
         elif option1 == 1 or option1 == 2:
             if option2 == 1 or option2 == 2:
-                return option1, option2
+                if option3 == 1 or option3 == 2:
+                    return option1, option2, option3, option4
+                else:
+                    print('Podano złe wartości')
+            else:
+                print('Podano złe wartości')
         else:
             print('Podano złe wartości')
 
