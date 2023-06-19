@@ -4,7 +4,7 @@ import numpy as np
 # from numpy   import long
 import threading
 import time
-
+import queue
 import receiver
 import transmitter
 
@@ -41,7 +41,7 @@ def menu():
         print('Ile przesłać pakietów?')
         option4 = int(input('Wybrano: '))
         if option1 == 3:
-            return 0, 0;
+            return 0, 0, 0, 0;
         elif option1 == 1 or option1 == 2:
             if option2 == 1 or option2 == 2:
                 if option3 == 1 or option3 == 2:
@@ -61,6 +61,9 @@ def print_menu(i):
     if i == 2:
         for key in menu_options2.keys():
             print(key, ':', menu_options2[key])
+    if i == 3:
+        for key in menu_options3.keys():
+            print(key, ':', menu_options3[key])
 
 
 def constRec(transmission, arq, coding, numberOfPackets, transmissionOrg):
@@ -76,11 +79,21 @@ if __name__ == '__main__':
     # data = bytes([1, 2, 3, 4])
     # print(sys.getsizeof(data))
 
-    options = menu()
-    coding = options[2]
-    chanel = options[1]
-    arq = options[0]
-    numberOfPackets = options[3]
+    # options = menu()
+    # coding = options[2]
+    # chanel = options[1]
+    # arq = options[0]
+    # numberOfPackets = options[3]
+
+    print('Setuję wartości')
+
+    coding = 2
+    chanel = 1
+    arq = 1
+    numberOfPackets = 10
+
+    print('Zaczynam tworzenie wątków')
+    print(threading.active_count())
 
     transmission = ""
     transmissionOrg = ""
@@ -90,6 +103,9 @@ if __name__ == '__main__':
     thread0.start()
     print(threading.active_count())
     thread1.start()
+    print(threading.active_count())
+
+
 
 # Press the green button in the gutter to run the script.
 

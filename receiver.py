@@ -2,6 +2,7 @@ import time
 
 import channel
 import threading
+import queue
 
 lock = threading.Lock()
 
@@ -66,7 +67,8 @@ class Receiver:
     def posRedundantBits(self, data, r):
         j = 0
         k = 1
-        m = len(data)
+        # m = len(data)
+        m = 2088
         res = ''
         for i in range(1, m + r + 1):
             if (i == 2 ** j):

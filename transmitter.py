@@ -65,6 +65,7 @@ class Transmitter:
                 self.numberOfPackets -= 1
                 time.sleep(10)
         else:
+            """
             if self.numberOfPackets % 1000 == 0:
                 numberOfBlocks = self.numberOfPackets / 1000
             else:
@@ -89,6 +90,8 @@ class Transmitter:
                     lock.release()
                     time.sleep(1)
                 # TODO receiving repeat requests
+                """
+
 
     def parityBitCoding(self):
         numberOfPackets = self.numberOfPackets
