@@ -63,12 +63,12 @@ def print_menu(i):
             print(key, ':', menu_options2[key])
 
 
-def constRec(transmission, arq, coding, numberOfPackets):
-    rec = receiver.Receiver(transmission, arq, coding, numberOfPackets)
+def constRec(transmission, arq, coding, numberOfPackets, transmissionOrg):
+    rec = receiver.Receiver(transmission, arq, coding, numberOfPackets, transmissionOrg)
     recS = rec.start()
 
-def constTrans(transmission, arq, coding, numberOfPackets):
-    trans = transmitter.Transmitter(transmission, arq, coding, numberOfPackets)
+def constTrans(transmission, arq, coding, numberOfPackets, transmissionOrg):
+    trans = transmitter.Transmitter(transmission, arq, coding, numberOfPackets, transmissionOrg)
     transS = trans.start()
 
 
@@ -83,9 +83,12 @@ if __name__ == '__main__':
     numberOfPackets = options[3]
 
     transmission = ""
-    thread0 = threading.Thread(target=constRec(transmission, arq, coding, numberOfPackets))
+    transmissionOrg = ""
+    thread0 = threading.Thread(target=constRec, args=(transmission, arq, coding, numberOfPackets, transmissionOrg))
+    thread1 = threading.Thread(target=constTrans, args=(transmission, arq, coding, numberOfPackets, transmissionOrg))
+
     thread0.start()
-    thread1 = threading.Thread(target=constTrans(transmission, arq, coding, numberOfPackets))
+    print(threading.active_count())
     thread1.start()
 
 # Press the green button in the gutter to run the script.

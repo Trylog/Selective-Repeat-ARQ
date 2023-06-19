@@ -1,3 +1,5 @@
+import time
+
 import channel
 import threading
 
@@ -5,7 +7,7 @@ lock = threading.Lock()
 
 
 class Receiver:
-    def __init__(self, transmission, arq, coding, numberOfPackets):
+    def __init__(self, transmission, arq, coding, numberOfPackets, transmissionOrg):
         self.packetsRec = []
         self.packetsWithErrors = []
         self.packetLenght = None
@@ -15,21 +17,31 @@ class Receiver:
         self.coding = coding
         self.decodedData = []
         self.numberOfPackets = numberOfPackets
+        self.transmissionOrg = transmissionOrg
 
     def start(self):
+        print("receiver start")
         while self.numberOfPackets:
             lock.acquire()
             transmissionCP = self.transmission
             lock.release()
-            if transmissionCP == self.lastTransmission:
+            if transmissionCP != self.lastTransmission:
+                self.lastTransmission = transmissionCP
 
                 if self.errorHamming(transmissionCP) == 0:
+                    print("coś przyszło")
                     self.decodedData.append(transmissionCP[0:2088])
                     lock.acquire()
                     self.transmission = 1
                     lock.release()
                     self.numberOfPackets -= 1
+                    lock.acquire()
+                    assert self.decodedData == self.transmissionOrg, "błąd"
+                    assert self.decodedData != self.transmissionOrg, "sukces"
+                    lock.release()
+                    time.sleep(10)
                 else:
+                    print("błąd w transmisji - proszę o retransmisję")
                     lock.acquire()
                     self.transmission = 0
                     lock.release()
@@ -48,7 +60,7 @@ class Receiver:
     def Hamminglenght(self):
         m = 2088
         for i in range(m):
-            if (2 ** i >= m + i + 1):
+            if 2 ** i >= m + i + 1:
                 return i + 2088
 
     def posRedundantBits(self, data, r):
