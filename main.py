@@ -99,7 +99,7 @@ if __name__ == '__main__':
     transmissionOrg = ""
     thread0 = threading.Thread(target=constRec, args=(transmission, arq, coding, numberOfPackets, transmissionOrg))
     thread1 = threading.Thread(target=constTrans, args=(transmission, arq, coding, numberOfPackets, transmissionOrg))
-
+#test
     thread0.start()
     print(threading.active_count())
     thread1.start()
