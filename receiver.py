@@ -1,7 +1,6 @@
 import channel
 import threading
 
-
 lock = threading.Lock()
 
 
@@ -35,9 +34,9 @@ class Receiver:
                     self.transmission = 0
                     lock.release()
 
-
     def parityBitDecoding(self, current):
         parityBit = self.packets[current][self.packetLenght - 1]
+
     def requestPacketRetransmit(self, number):
         return
 
