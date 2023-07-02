@@ -4,7 +4,11 @@ from typing import List
 
 
 def bsc(probability, packet):
+
+    packet = ([*packet])
+    packet = [eval(i) for i in packet]
     bsc = komm.BinarySymmetricChannel(probability)
+
     return bsc(packet)
 
 

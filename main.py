@@ -4,10 +4,12 @@ import numpy as np
 # from numpy   import long
 import threading
 import time
-import queue
+import scipy
 import receiver
 import transmitter
 
+global repeater
+repeater = 0
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 menu_options1 = {
@@ -41,7 +43,7 @@ def menu():
         print('Ile przesłać pakietów?')
         option4 = int(input('Wybrano: '))
         if option1 == 3:
-            return 0, 0, 0, 0;
+            return 0, 0
         elif option1 == 1 or option1 == 2:
             if option2 == 1 or option2 == 2:
                 if option3 == 1 or option3 == 2:
@@ -66,12 +68,15 @@ def print_menu(i):
             print(key, ':', menu_options3[key])
 
 
-def constRec(transmission, arq, coding, numberOfPackets, transmissionOrg):
-    rec = receiver.Receiver(transmission, arq, coding, numberOfPackets, transmissionOrg)
+def constRec(transmission, arq, coding, numberOfPackets):
+    rec = receiver.Receiver(transmission, arq, coding, numberOfPackets)
+    print('reciver start')
     recS = rec.start()
 
-def constTrans(transmission, arq, coding, numberOfPackets, transmissionOrg):
-    trans = transmitter.Transmitter(transmission, arq, coding, numberOfPackets, transmissionOrg)
+
+def constTrans(transmission, arq, coding, numberOfPackets):
+    trans = transmitter.Transmitter(transmission, arq, coding, numberOfPackets)
+    print('transmiter start')
     transS = trans.start()
 
 
@@ -80,33 +85,26 @@ if __name__ == '__main__':
     # print(sys.getsizeof(data))
 
     # options = menu()
+
     # coding = options[2]
     # chanel = options[1]
     # arq = options[0]
     # numberOfPackets = options[3]
-
-    print('Setuję wartości')
-
-    coding = 2
+    coding = 1
     chanel = 1
     arq = 1
-    numberOfPackets = 10
+    numberOfPackets = 100
 
-    print('Zaczynam tworzenie wątków')
-    print(threading.active_count())
-
+    print("START")
     transmission = ""
-    transmissionOrg = ""
-    thread0 = threading.Thread(target=constRec, args=(transmission, arq, coding, numberOfPackets, transmissionOrg))
-    thread1 = threading.Thread(target=constTrans, args=(transmission, arq, coding, numberOfPackets, transmissionOrg))
-#test
+    thread0 = threading.Thread(target=constRec("", arq, coding, numberOfPackets))
+    thread1 = threading.Thread(target=constTrans("", arq, coding, numberOfPackets))
     thread0.start()
-    print(threading.active_count())
     thread1.start()
-    print(threading.active_count())
 
-
-
+    thread0.join()
+    thread1.join()
+    print("KONIEC")
 # Press the green button in the gutter to run the script.
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

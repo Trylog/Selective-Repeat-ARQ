@@ -2,13 +2,14 @@ import time
 
 import channel
 import threading
-import queue
 
 lock = threading.Lock()
 
+from main import repeater as rp
+
 
 class Receiver:
-    def __init__(self, transmission, arq, coding, numberOfPackets, transmissionOrg):
+    def __init__(self, transmission, arq, coding, numberOfPackets):
         self.packetsRec = []
         self.packetsWithErrors = []
         self.packetLenght = None
@@ -18,34 +19,46 @@ class Receiver:
         self.coding = coding
         self.decodedData = []
         self.numberOfPackets = numberOfPackets
-        self.transmissionOrg = transmissionOrg
 
     def start(self):
-        print("receiver start")
-        while self.numberOfPackets:
+        print('reciver start')
+        self.lastTransmission = ""
+        while self.numberOfPackets > 0:
+            #print('numer pakietu r: ' + str(self.numberOfPackets))
             lock.acquire()
             transmissionCP = self.transmission
             lock.release()
             if transmissionCP != self.lastTransmission:
-                self.lastTransmission = transmissionCP
-
+                global rp
+                rp = self.errorHamming(transmissionCP)
                 if self.errorHamming(transmissionCP) == 0:
-                    print("coś przyszło")
                     self.decodedData.append(transmissionCP[0:2088])
                     lock.acquire()
                     self.transmission = 1
                     lock.release()
                     self.numberOfPackets -= 1
-                    lock.acquire()
-                    assert self.decodedData == self.transmissionOrg, "błąd"
-                    assert self.decodedData != self.transmissionOrg, "sukces"
-                    lock.release()
-                    time.sleep(10)
                 else:
-                    print("błąd w transmisji - proszę o retransmisję")
                     lock.acquire()
                     self.transmission = 0
                     lock.release()
+                self.lastTransmission = transmissionCP
+            time.sleep(0.5)
+
+        def crc1(data, polynomial):
+            crc = 0
+            for byte in data:
+                crc ^= byte
+                for _ in range(8):
+                    if crc & 0x80:
+                        crc = (crc << 1) ^ polynomial
+                    else:
+                        crc <<= 1
+                    crc &= 0xFF  # Ograniczenie wartości CRC do 8 bitów (jednego bajtu)
+            return crc
+
+        def crc_checksum(data, polynomial):
+            crc_value = crc1(data, polynomial)
+            return crc_value.to_bytes(1, byteorder='big')
 
     def parityBitDecoding(self, current):
         parityBit = self.packets[current][self.packetLenght - 1]
@@ -61,14 +74,13 @@ class Receiver:
     def Hamminglenght(self):
         m = 2088
         for i in range(m):
-            if 2 ** i >= m + i + 1:
+            if (2 ** i >= m + i + 1):
                 return i + 2088
 
     def posRedundantBits(self, data, r):
         j = 0
         k = 1
-        # m = len(data)
-        m = 2088
+        m = len(data)
         res = ''
         for i in range(1, m + r + 1):
             if (i == 2 ** j):

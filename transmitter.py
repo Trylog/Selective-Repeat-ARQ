@@ -1,77 +1,67 @@
 import time
+
+import numpy as np
+
 import channel
 import random
 import threading
-import queue
-from crc import Calculator, Crc32
+import main
 
 lock = threading.Lock()
 
 
 class Transmitter:
 
-    def __init__(self, transmission, arq, coding, numberOfPackets, transmissionOrg):
+    def __init__(self, transmission, arq, coding, numberOfPackets):
         self.data = None
         self.codingType = None
         self.packetLenght = None
-        self.numberOfPackets = None
         self.transmission = transmission
         self.arq = arq
         self.coding = coding
         self.numberOfPackets = numberOfPackets
         self.currentPacketNumber = 0
-        self.transmissionOrg = transmissionOrg
 
     def start(self):
-        print("transmiter start")
+        print('transmiter start')
         if self.arq == 1:
-            while self.numberOfPackets:
-                print("transmiting first packed")
+            while self.numberOfPackets > 0:
+                print('numer pakietu t: '+str(self.numberOfPackets))
                 transmissionCP = ""
                 ciag = ""
-                isReapeted = 0
+                isReapeted = False
                 for _ in range(256):
                     losowa_liczba = random.randint(0, 1)
                     ciag += str(losowa_liczba)
-                with lock:
-                    self.transmissionOrg = ciag
-                #codeData = self.codeHamming(ciag)
+                codeData = self.codeHamming(ciag)
                 packet = ""
-                packet += str(isReapeted)
-                #packet += codeData
-                packet += ciag
-                #self.transmission = channel.bsc(0.1, packet)
-                with lock:
-                    self.transmission = packet
+                #packet += isReapeted
+                packet += codeData
+                lock.acquire()
+                self.transmission = channel.bsc(0.1, packet)
+                lock.release()
                 time.sleep(1)
-                with lock:
-                    transmissionCP = self.transmission
-                while transmissionCP != 1:
-                    print("przyszła informacja o błędzie transmisji - retransmisja")
-                    isReapeted = 1
-                    #codeData = self.codeHamming(ciag)
+                lock.acquire()
+                transmissionCP = self.transmission
+                lock.release()
+                if main.repeater != 0:   # check czy hamming wykryl, tu ma być  self.errorHamming(transmissionCP)
+                    isReapeted = True
+                    codeData = self.codeHamming(ciag)
                     packet = ""
-                    packet += str(isReapeted)
-                    #packet += codeData
-                    packet += ciag
-
-                    #self.transmission = channel.bsc(0.1, packet)
-                    with lock:
-                        self.transmission = packet
-
+                    #packet += isReapeted
+                    packet += codeData
+                    lock.acquire()
+                    self.transmission = channel.bsc(0.1, packet)
+                    lock.release()
                     time.sleep(1)
-                    with lock:
-                        transmissionCP = self.transmission
                 self.numberOfPackets -= 1
-                time.sleep(10)
         else:
-            """
             if self.numberOfPackets % 1000 == 0:
                 numberOfBlocks = self.numberOfPackets / 1000
             else:
                 numberOfBlocks = self.numberOfPackets / 1000 + 1
 
-            for j in range(numberOfBlocks):
+            for j in range(int(numberOfBlocks)):
                 for i in range(1000):
                     ciag = ""
                     for _ in range(256):
@@ -79,34 +69,36 @@ class Transmitter:
                         ciag += str(losowa_liczba)
                     codeData = self.codeHamming(ciag)
                     packet = ""
-                    packet += i  # TODO change to binary
+                    packet += str(i)
                     if j * 1000 + i == self.numberOfPackets - 1:
-                        packet += 0  # TODO change to binary
+                        packet += str(0)
                     else:
-                        packet += 1  # TODO change to binary
+                        packet += str(1)
                     packet += codeData
                     lock.acquire()
+
                     self.transmission = channel.bsc(0.1, packet)
                     lock.release()
                     time.sleep(1)
-                # TODO receiving repeat requests
-                """
+
+        def crc_checksum(data, polynomial):
+            crc_value = self.crc1(data, polynomial)
+            return crc_value.to_bytes(1, byteorder='big')
+
+        def crc1(data, polynomial):
+            crc = 0
+            for byte in data:
+                crc ^= byte
+                for _ in range(8):
+                    if crc & 0x80:
+                        crc = (crc << 1) ^ polynomial
+                    else:
+                        crc <<= 1
+                    crc &= 0xFF  # Ograniczenie wartości CRC do 8 bitów (jednego bajtu)
+            return crc
 
 
-    def parityBitCoding(self):
-        numberOfPackets = self.numberOfPackets
 
-        ##długość paczki trzeba dstosować do konkrętnego kodu
-        ##dwa rodzaje arq
-        ##crc różne
-        # historia kanału  -gilbertta-elia dasch7 hard lorawan
-
-    def codeCRC(self, data):
-        calculator = Calculator(Crc32.CCITT)
-        dataC = bytes(data)
-        checkSum = calculator.checksum(dataC)
-        dataC += checkSum
-        return dataC
 
     def calcRedundantBits(self, m):
         for i in range(m):
@@ -129,6 +121,9 @@ class Transmitter:
                 res = res + '0'
                 j += 1
             else:
+                if k > len(data):
+                    return res[::-1]
+
                 res = res + data[-1 * k]
                 k += 1
         return res[::-1]
