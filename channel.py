@@ -1,13 +1,21 @@
-import komm
+import random
 import numpy as np
 from typing import List
 
 
-def bsc(probability, packet):
-    bsc = komm.BinarySymmetricChannel(probability)
-    return bsc(packet)
 
-
+def bsc_transmit(input_string, error_probability):
+    output_string = ""
+    for bit in input_string:
+        # Losowe przekształcenie bitu
+        if random.random() < error_probability:
+            # Zmiana bitu
+            output_bit = '1' if bit == '0' else '0'
+        else:
+            # Brak zmiany bitu
+            output_bit = bit
+        output_string += output_bit
+    return output_string
 class Channel:
 
     probability = 10
@@ -17,6 +25,7 @@ class Channel:
         self._currentIndex = 0
         self._nextOut = 0
         self._currentModel = 0
+
 
     def gilbert_elliott(self, transmited_signal, p_bg, p_gb, num_bits):
         channel_state = [1]  # start in the good state
@@ -43,20 +52,4 @@ class Channel:
 
         return transmited_signal, received_signal
 
-    def gem(self, probability, packet):
-        return
 
-    def chIn(self,  chInput: List[int]) -> None:
-        self._buffer = []
-        if self._currentModel:
-            self._buffer.append(self.gilbert_elliott(chInput, 1e-3, 1e-3, len(chInput)))
-        else:
-            self._buffer.append(bsc(self.probability, chInput))
-
-    def chOut(self):
-        if self._nextOut <= len(self._buffer):
-            self._nextOut += 1
-            return self.buffer[self._nextOut]
-
-    def setModel(self, model):
-        self._currentModel=model
