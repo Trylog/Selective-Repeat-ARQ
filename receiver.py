@@ -1,11 +1,13 @@
-import channel
-import threading
+import time
 
-lock = threading.Lock()
+import channel
+
+import queue
+
 
 
 class Receiver:
-    def __init__(self, transmission, arq, coding, numberOfPackets):
+    def __init__(self, transmission, arq, coding, numberOfPackets, transmissionOrg):
         self.packetsRec = []
         self.packetsWithErrors = []
         self.packetLenght = None
@@ -15,30 +17,109 @@ class Receiver:
         self.coding = coding
         self.decodedData = []
         self.numberOfPackets = numberOfPackets
+        self.transmissionOrg = transmissionOrg
+
 
     def start(self):
-        while self.numberOfPackets:
-            lock.acquire()
-            transmissionCP = self.transmission
-            lock.release()
-            if transmissionCP == self.lastTransmission:
+        print("receiver start")
+        while self.numberOfPackets > 0:
+            # print('rec ch n d')
+            transmissionCP = self.transmission.get()
+            self.transmission.put(transmissionCP)
+            self.transmission.task_done()
+            # print('rec got sm')
+            while transmissionCP == self.lastTransmission:
+                print('pe: ' + transmissionCP)
+                if not self.transmission.empty():
+                    transmissionCP = self.transmission.get()
+                    self.transmission.put(transmissionCP)
+                    self.transmission.task_done()
+                    print('not empty')
 
-                if self.errorHamming(transmissionCP) == 0:
-                    self.decodedData.append(transmissionCP[0:2088])
-                    lock.acquire()
-                    self.transmission = 1
-                    lock.release()
+                time.sleep(0.1)
+                print('waiting ...')
+            print('new transmision detected' + transmissionCP)
+            temp = str(transmissionCP)
+            """
+            tekst = list(temp)
+            tekst[3] = '1'
+            temp = ''.join(tekst)
+            """
+            if self.coding == 2:
+                print('any error? ' + str(self.errorHamming(temp)))
+                if str(self.errorHamming(temp)) == '0':
+                    print('uff nie ma błędów')
+                    self.transmission.put("1")
+                    self.lastTransmission = "1"
                     self.numberOfPackets -= 1
                 else:
-                    lock.acquire()
-                    self.transmission = 0
-                    lock.release()
+                    print('proszę o retransmisję')
+                    self.transmission.put("0")
+                    self.lastTransmission = "0"
+            elif self.coding == 3:
+                print('any error? ' + str(self.parityBitCheck(temp)))
+                if self.parityBitCheck(temp):
+                    print('uff nie ma błędów')
+                    self.transmission.put("1")
+                    self.lastTransmission = "1"
+                    self.numberOfPackets -= 1
+                else:
+                    print('proszę o retransmisję')
+                    self.transmission.put("0")
+                    self.lastTransmission = "0"
+            elif self.coding == 1:
+                print('any error? ' + str(self.detect_errors(temp)))
+                if not self.detect_errors(temp):
+                    print('uff nie ma błędów')
+                    self.transmission.put("1")
+                    self.lastTransmission = "1"
+                    self.numberOfPackets -= 1
+                else:
+                    print('proszę o retransmisję')
+                    self.transmission.put("0")
+                    self.lastTransmission = "0"
+            print('rec sleep')
+            time.sleep(0.2)
 
-    def parityBitDecoding(self, current):
-        parityBit = self.packets[current][self.packetLenght - 1]
+    def crc32(self, data):
+        crc = 0xFFFFFFFF
+        for bit in data:
+            crc ^= int(bit)
+            for _ in range(8):
+                crc = (crc >> 1) ^ 0xEDB88320 if crc & 1 else crc >> 1
+        return crc ^ 0xFFFFFFFF
 
-    def requestPacketRetransmit(self, number):
-        return
+    def encode_message(self, message):
+        crc_value = self.crc32(message)
+        encoded_message = message + format(crc_value, '032b')
+        return encoded_message
+
+    def detect_errors(self, received_message):
+        crc_value = received_message[-32:]
+        message = received_message[:-32]
+        calculated_crc = self.crc32(message)
+        return crc_value != format(calculated_crc, '032b')
+    def parityBitCoding(self, string):
+        out = ""
+        out = string
+        numberOfPositives = 0
+        for bit in string:
+            if bit == '1':
+                numberOfPositives += 1
+        out += str(numberOfPositives % 2)
+        return out
+
+    def parityBitCheck(self, string):
+        out = ""
+        out = string[0:-1]
+        numberOfPositives = 0
+        for bit in out:
+            if bit == '1':
+                numberOfPositives += 1
+        if str(numberOfPositives % 2) == string[-1]:
+            return True
+        else:
+            return False
 
     def calcRedundantBits(self, m):
         for i in range(m):
@@ -48,13 +129,14 @@ class Receiver:
     def Hamminglenght(self):
         m = 2088
         for i in range(m):
-            if (2 ** i >= m + i + 1):
+            if 2 ** i >= m + i + 1:
                 return i + 2088
 
     def posRedundantBits(self, data, r):
         j = 0
         k = 1
-        m = len(data)
+        # m = len(data)
+        m = 2088
         res = ''
         for i in range(1, m + r + 1):
             if (i == 2 ** j):
