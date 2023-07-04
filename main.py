@@ -1,10 +1,14 @@
-# This is a sample Python script.
+
+
+# Developed by Michał Bernacki-Janson
+
+
 import sys
 import numpy as np
 # from numpy   import long
 import threading
 import time
-
+import queue
 import receiver
 import transmitter
 
@@ -18,7 +22,7 @@ menu_options1 = {
 
 menu_options2 = {
     1: 'BST',
-    2: 'Geblerta-Eliota',
+    2: 'Gilberta-Eliota',
 }
 
 menu_options3 = {
@@ -41,7 +45,7 @@ def menu():
         print('Ile przesłać pakietów?')
         option4 = int(input('Wybrano: '))
         if option1 == 3:
-            return 0, 0;
+            return 0, 0, 0, 0;
         elif option1 == 1 or option1 == 2:
             if option2 == 1 or option2 == 2:
                 if option3 == 1 or option3 == 2:
@@ -61,14 +65,18 @@ def print_menu(i):
     if i == 2:
         for key in menu_options2.keys():
             print(key, ':', menu_options2[key])
+    if i == 3:
+        for key in menu_options3.keys():
+            print(key, ':', menu_options3[key])
 
 
-def constRec(transmission, arq, coding, numberOfPackets):
-    rec = receiver.Receiver(transmission, arq, coding, numberOfPackets)
+def constRec(que, arq1, coding1, numberOfPackets1, transmissionOrg1):
+    rec = receiver.Receiver(que, arq1, coding1, numberOfPackets1, transmissionOrg1)
     recS = rec.start()
 
-def constTrans(transmission, arq, coding, numberOfPackets):
-    trans = transmitter.Transmitter(transmission, arq, coding, numberOfPackets)
+
+def constTrans(que, arq1, coding1, numberOfPackets1, transmissionOrg1):
+    trans = transmitter.Transmitter(que, arq1, coding1, numberOfPackets1, transmissionOrg1)
     transS = trans.start()
 
 
@@ -76,18 +84,31 @@ if __name__ == '__main__':
     # data = bytes([1, 2, 3, 4])
     # print(sys.getsizeof(data))
 
-    options = menu()
-    coding = options[2]
-    chanel = options[1]
-    arq = options[0]
-    numberOfPackets = options[3]
+    # options = menu()
+    # coding = options[2]
+    # chanel = options[1]
+    # arq = options[0]
+    # numberOfPackets = options[3]
 
-    transmission = ""
-    thread0 = threading.Thread(target=constRec(transmission, arq, coding, numberOfPackets))
+    print('Setuję wartości')
+
+    # coding 1 - crc; 2 - hamming; 3 - parity bit
+    coding = 1
+    chanel = 1
+    arq = 1
+    numberOfPackets = 10
+
+    print('Zaczynam tworzenie wątków')
+    print(threading.active_count())
+
+    transmission = queue.LifoQueue()
+    transmissionOrg = ""
+    thread0 = threading.Thread(target=constRec, args=(transmission, arq, coding, numberOfPackets, transmissionOrg,))
+    thread1 = threading.Thread(target=constTrans, args=(transmission, arq, coding, numberOfPackets, transmissionOrg,))
+
     thread0.start()
-    thread1 = threading.Thread(target=constTrans(transmission, arq, coding, numberOfPackets))
+    print(threading.active_count())
     thread1.start()
+    print(threading.active_count())
 
-# Press the green button in the gutter to run the script.
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
